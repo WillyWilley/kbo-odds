@@ -49,7 +49,6 @@ def render_team(team, results, ctx):
     po_str = state if state else f"{po*100:.0f}%"
     rng = f"{rk['mode']}위" if rk["lo"] == rk["hi"] else f"{rk['mode']}위 ({rk['lo']}~{rk['hi']}위권)"
     top3 = sorted(TEAMS, key=lambda t: r0["champ"][t], reverse=True)[:3]
-    gb_str = f" · 막차 {gb:.0f}경기차" if gb > 0 else ""
 
     lines = [_BAR, f"⚾ {team} — 우승확률 ({_PERIOD_LABEL.get(main_p, main_p)})"]
     lines.append(f"📍 {pos}위 · {rec} · 남은 {games_left}경기")
@@ -58,12 +57,10 @@ def render_team(team, results, ctx):
             f"{r['champ'][team]*100:.1f}%({_PERIOD_LABEL.get(per,per).split()[0]})" for per, r in results.items()))
     else:
         lines.append(f"🏆 우승      {champ*100:.1f}%")
-    lines.append(f"📊 가을야구   {po_str}{gb_str}")
+    lines.append(f"📊 가을야구   {po_str}")
     lines.append(f"📈 예상순위   {rng}")
     lines.append("🥇 1순위  " + " · ".join(f"{t} {r0['champ'][t]*100:.0f}%" for t in top3))
-    lines.append("")
-    lines.append('📌 "전체 순위" · "올해로/최근3년으로" · 다른 팀')
-    lines.append("💬 안 보이면 \"다시 보여줘\"")
+    lines.append('💬 안 보이면 "다시 보여줘"')
     lines.append(_BAR)
     return "\n".join(lines)
 
@@ -79,6 +76,6 @@ def render_all(result, period, ctx):
         c_str = f"{c:4.1f}%" if c >= 0.05 else " ~0%"
         po_str = f"{po:3.0f}%" if 0.5 <= po <= 99.5 else ("100%" if po > 99.5 else "~0%")
         lines.append(f"{i:2} {t:<4}{c_str} / {po_str}")
-    lines.append('💬 팀이름=상세 · "올해/최근3년" · 안보이면 "다시"')
+    lines.append('💬 안 보이면 "다시 보여줘"')
     lines.append(_BAR)
     return "\n".join(lines)
