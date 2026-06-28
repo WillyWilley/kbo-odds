@@ -62,7 +62,7 @@ def render_team(team, results, ctx, note=None):
     lines = [_BAR, f"⚾ {ctx['year']} KBO {team} 시뮬레이션"]
     if note:
         lines.append(note)
-    lines.append(f"📍 최종성적  {pos}위 {rec}")
+    lines.append(f"📍 현재성적  {pos}위 {rec}")
     lines.append(f"🏆 우승확률      {champ*100:.1f}%")
     lines.append(f"📊 가을야구확률  {po_str}")
     lines.append(comments.team_line(champ, po))
