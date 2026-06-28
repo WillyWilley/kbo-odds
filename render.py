@@ -4,6 +4,7 @@
 """
 import unicodedata
 
+import comments
 from simulate import TEAMS
 
 _BAR = "━" * 18
@@ -64,6 +65,7 @@ def render_team(team, results, ctx, note=None):
     lines.append(f"📍 최종성적  {pos}위 {rec}")
     lines.append(f"🏆 우승확률      {champ*100:.1f}%")
     lines.append(f"📊 가을야구확률  {po_str}")
+    lines.append(comments.team_line(champ, po))
     lines.append(_BAR)
     return "\n".join(lines)
 

@@ -5,7 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY simulate.py kbo_data.py render.py server.py ./
+COPY simulate.py kbo_data.py render.py comments.py server.py ./
 COPY data/ ./data/
 
 ENV PORT=8000
