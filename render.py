@@ -78,6 +78,7 @@ def render_team(team, results, ctx):
     lines.append('  · "최근 3년으로" — 과거까지 반영해 비교')
     lines.append('  · "전체 순위" — 10팀 우승확률 한눈에')
     lines.append("  · 다른 팀 이름 — 그 팀도 계산")
+    lines.append("💬 혹시 표가 안 보이면 '다시 보여줘'!")
     lines.append(_BAR)
     return "\n".join(lines)
 
@@ -98,5 +99,6 @@ def render_all(result, period, ctx):
     lines.append("📌 이어서 이렇게")
     lines.append('  · 팀 이름(예 "한화") — 그 팀 상세')
     lines.append('  · "최근 3년으로" — 과거까지 반영')
+    lines.append("💬 혹시 표가 안 보이면 '다시 보여줘'!")
     lines.append(_BAR)
     return "\n".join(lines)
