@@ -83,21 +83,18 @@ def render_team(team, results, ctx):
 
 
 def render_all(result, period, ctx):
-    """전체 팀 우승확률 순위표."""
+    """전체 팀 우승확률 + 가을야구확률 순위표 (둘 다 항상 표시)."""
     rank = sorted(TEAMS, key=lambda t: result["champ"][t], reverse=True)
-    lines = [_BAR, f"🏆 {ctx['year']} 우승확률 ({_PERIOD_LABEL.get(period, period)})", ""]
+    lines = [_BAR, f"🏆 {ctx['year']} 우승확률 · 가을야구",
+             f"   ({_PERIOD_LABEL.get(period, period)} 기준)", "",
+             "  팀      우승   가을야구"]
     for i, t in enumerate(rank, 1):
         c = result["champ"][t] * 100
-        po = result["po"][t]
-        tag = ""
-        if po >= 0.999:
-            tag = " 🔒"
-        elif po <= 0.001:
-            tag = " ❌"
+        po = result["po"][t] * 100
         c_str = f"{c:4.1f}%" if c >= 0.05 else "  ~0%"
-        lines.append(f"{i:2}. {t:<4} {c_str}{tag}")
+        po_str = f"{po:3.0f}%" if 0.5 <= po <= 99.5 else ("100%" if po > 99.5 else " ~0%")
+        lines.append(f"{i:2} {t:<4} {c_str}  {po_str}")
     lines.append("")
-    lines.append("🔒 확정임박 · ❌ 사실상탈락 · 2만회 시뮬")
     lines.append("📌 이어서 이렇게")
     lines.append('  · 팀 이름(예 "한화") — 그 팀 상세')
     lines.append('  · "최근 3년으로" — 과거까지 반영')
