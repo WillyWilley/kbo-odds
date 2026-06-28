@@ -1,12 +1,5 @@
-# KBO 우승확률 MCP — Python(시뮬·서버) + Node(kbo-game, 올해 경기 조회)
+# KBO 우승확률 MCP — Python 단독 (KBO 데이터는 stdlib urllib로 직접 조회, node 불필요)
 FROM python:3.12-slim
-
-# Node.js + kbo-game (런타임에 올해 경기 조회용)
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
- && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
- && apt-get install -y --no-install-recommends nodejs \
- && npm install -g kbo-game \
- && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY requirements.txt .
