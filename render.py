@@ -5,7 +5,8 @@
 from simulate import TEAMS
 
 _BAR = "━" * 18
-_PERIOD_LABEL = {"올해": "올해 성적", "2년": "최근 2년 가중", "3년": "최근 3년 가중"}
+_PERIOD_LABEL = {"올해": "이번 시즌", "2년": "최근 2시즌", "3년": "최근 3시즌"}
+_PERIOD_SHORT = {"올해": "이번시즌", "2년": "2시즌", "3년": "3시즌"}
 
 
 def _winpct(s):
@@ -51,16 +52,15 @@ def render_team(team, results, ctx):
     top3 = sorted(TEAMS, key=lambda t: r0["champ"][t], reverse=True)[:3]
 
     lines = [_BAR, f"⚾ {team} — 우승확률 ({_PERIOD_LABEL.get(main_p, main_p)})"]
-    lines.append(f"📍 {pos}위 · {rec} · 남은 {games_left}경기")
+    lines.append(f"📍 현재성적 {pos}위 · {rec}")
     if len(results) > 1:   # 기간 비교
         lines.append("🏆 우승  " + " · ".join(
-            f"{r['champ'][team]*100:.1f}%({_PERIOD_LABEL.get(per,per).split()[0]})" for per, r in results.items()))
+            f"{r['champ'][team]*100:.1f}%({_PERIOD_SHORT.get(per,per)})" for per, r in results.items()))
     else:
         lines.append(f"🏆 우승      {champ*100:.1f}%")
     lines.append(f"📊 가을야구   {po_str}")
     lines.append(f"📈 예상순위   {rng}")
-    lines.append("🥇 1순위  " + " · ".join(f"{t} {r0['champ'][t]*100:.0f}%" for t in top3))
-    lines.append('💬 안 보이면 "다시 보여줘"')
+    lines.append('💬 결과가 안 보이면 "다시 보여줘"라고 해줘')
     lines.append(_BAR)
     return "\n".join(lines)
 
@@ -76,6 +76,6 @@ def render_all(result, period, ctx):
         c_str = f"{c:4.1f}%" if c >= 0.05 else " ~0%"
         po_str = f"{po:3.0f}%" if 0.5 <= po <= 99.5 else ("100%" if po > 99.5 else "~0%")
         lines.append(f"{i:2} {t:<4}{c_str} / {po_str}")
-    lines.append('💬 안 보이면 "다시 보여줘"')
+    lines.append('💬 결과가 안 보이면 "다시 보여줘"라고 해줘')
     lines.append(_BAR)
     return "\n".join(lines)
