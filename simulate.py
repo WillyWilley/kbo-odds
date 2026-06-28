@@ -78,6 +78,7 @@ def simulate(current_wins, remaining, p, n=20000, seed=42):
     rng = random.Random(seed)
     champ = {t: 0 for t in TEAMS}
     po = {t: 0 for t in TEAMS}
+    pos_cnt = {t: [0] * 10 for t in TEAMS}   # 최종 순위(1~10위) 분포
     for _ in range(n):
         w = dict(current_wins)
         for g in remaining:
@@ -88,10 +89,11 @@ def simulate(current_wins, remaining, p, n=20000, seed=42):
                 w[g["a"]] += 1
         # 순위(승수 → 동률시 실력)
         rank = sorted(TEAMS, key=lambda t: (w[t], p[t]), reverse=True)
+        for i, t in enumerate(rank):
+            pos_cnt[t][i] += 1
         s1, s2, s3, s4, s5 = rank[:5]
         for t in rank[:5]:
             po[t] += 1
-        # 스텝래더 (상위시드 홈 → +HOME, 이항분포 시리즈 확률로 1회 추첨)
 
         def adv(hi, lo, need, pre=0):
             ph = log5(p[hi], p[lo]) + HOME
@@ -101,8 +103,24 @@ def simulate(current_wins, remaining, p, n=20000, seed=42):
         win = adv(s2, win, 3)     # PO (BO5)
         win = adv(s1, win, 4)     # 한국시리즈 (BO7)
         champ[win] += 1
+
+    def _rank_stats(t):
+        c = pos_cnt[t]
+        mode = c.index(max(c)) + 1                       # 가장 가능성 높은 순위
+        # 10~90% 구간(누적)
+        lo = hi = None
+        acc = 0
+        for i, v in enumerate(c):
+            acc += v
+            if lo is None and acc >= 0.1 * n:
+                lo = i + 1
+            if hi is None and acc >= 0.9 * n:
+                hi = i + 1
+        return {"mode": mode, "lo": lo or mode, "hi": hi or mode}
+
     return {"champ": {t: champ[t] / n for t in TEAMS},
-            "po": {t: po[t] / n for t in TEAMS}}
+            "po": {t: po[t] / n for t in TEAMS},
+            "rank": {t: _rank_stats(t) for t in TEAMS}}
 
 
 if __name__ == "__main__":
