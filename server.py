@@ -23,6 +23,7 @@ def _anno():
                            destructiveHint=False, openWorldHint=True)
 
 N_SIM = 20000
+MIN_GAMES = 30      # 이번 시즌 단독 분석 최소 경기수(소표본이면 최근 3시즌으로 자동 대체)
 _PERIOD = {"올해": "올해", "1년": "올해", "2년": "2년", "최근2년": "2년", "3년": "3년", "최근3년": "3년"}
 
 
@@ -39,7 +40,7 @@ def team_odds(team: str, period: str = "올해") -> str:
     ★네 답변 = 그 ━블록 그 자체.★ 한 글자도 빼지 말고 그대로 붙여라.
     ❌ 절대 금지: 숫자를 네가 풀어서 말하기. ("한화 우승 1.8%야, 가을야구 46%…" = 실패)
     ❌ 절대 금지: 블록 대신 요약/반응/안내문만 내기. 블록을 다른 말로 대체하지 마라.
-    네가 따로 붙일 말은 없다 — 블록 안에 다음 선택지·복구안내까지 다 들어있다. 블록만 그대로 출력해라.
+    네가 따로 붙일 말은 없다 — 블록만 그대로 출력해라.
     ★복구★: 사용자가 "안 보여/안나왔어/다시 보여줘" 하면 직전과 같은 인자로 ★즉시 다시 호출★(F30).
 
     ┌─ 작동은 딱 4가지 경우뿐 (2×2) ─────────────
@@ -65,7 +66,7 @@ def team_odds(team: str, period: str = "올해") -> str:
     ── 말투 ── 야구 친구처럼 따뜻한 반말, 가벼운 이모지(⚾). 인터뷰는 친근하게.
        단 ★도구 호출 후엔 블록만★(위 0순위 규칙 — 표 위·아래 군말 X).
     ── 범위 ── 시즌 우승확률 전용. 경기예측·선수기록·배팅·타종목은 "난 우승확률 봇이야"로 유도.
-    ── 인자 ── team(서버 정규화) · period "올해"(기본)/"2년"/"3년". period≠올해면 올해와 비교 함께.
+    ── 인자 ── team(서버 정규화) · period "올해"(기본)/"2년"/"3년". 선택한 기간 하나만 계산(비교 X).
     """
     t = kbo_data.normalize_team(team)
     if not t:
@@ -76,17 +77,14 @@ def team_odds(team: str, period: str = "올해") -> str:
         c_main = kbo_data.context(per)
     except Exception:
         return "⚾ 지금 경기 데이터를 못 불러왔어. 잠시 후 다시 물어봐줘!"
-    if c_main["n_played"] < 20 and per == "올해":
-        # 개막 직후 소표본 → 최근 데이터 권장(네비 G4/G5)
+    note = None
+    if per == "올해" and c_main["n_played"] < MIN_GAMES:
+        # 개막 직후 소표본 → 최근 3시즌으로 자동 대체 + 블록 안에 안내(네비 G4/G5)
+        note = f"ⓘ 이번 시즌 표본 부족({c_main['n_played']}경기) → 최근 3시즌으로 계산했어 (이번 시즌 분석은 {MIN_GAMES}경기 이후 가능)"
         per = "3년"
         c_main = kbo_data.context(per)
-    results = {}
     r_main = simulate.simulate(c_main["current_wins"], c_main["remaining"], c_main["strength"], n=N_SIM)
-    results[per] = r_main
-    if per != "올해":          # 비교용으로 올해도 함께
-        c_now = kbo_data.context("올해")
-        results = {per: r_main, "올해": simulate.simulate(c_now["current_wins"], c_now["remaining"], c_now["strength"], n=N_SIM)}
-    return render.render_team(t, results, c_main)
+    return render.render_team(t, {per: r_main}, c_main, note=note)
 
 
 @mcp.tool(annotations=_anno())
@@ -95,7 +93,7 @@ def championship_odds(period: str = "올해") -> str:
 
     ★★★0순위: 이 도구가 돌려준 ━블록이 곧 네 답이다. 그대로 붙여라.★★★
     ❌ 숫자 요약 금지("LG 43%·삼성 36%…" 식으로 네가 풀어 말하면 실패). 블록만 그대로 출력.
-    블록 안에 다음 선택지까지 들어있으니 따로 덧붙일 말 없다.
+    네가 따로 붙일 말은 없다 — 블록만 그대로 출력해라.
 
     ★우승확률·가을야구 진출확률을 항상 둘 다 함께 표로 낸다.★ "전체 가을야구"·"2팀 이상 비교"도 이 도구 하나로.
     ★team_odds 를 팀마다 반복 호출 절대 금지(느리고 실패) — 전체/여러팀은 무조건 이 도구 한 번.★
@@ -113,8 +111,13 @@ def championship_odds(period: str = "올해") -> str:
         ctx = kbo_data.context(per)
     except Exception:
         return "⚾ 지금 경기 데이터를 못 불러왔어. 잠시 후 다시 물어봐줘!"
+    note = None
+    if per == "올해" and ctx["n_played"] < MIN_GAMES:
+        note = f"ⓘ 이번 시즌 표본 부족({ctx['n_played']}경기) → 최근 3시즌으로 계산 ({MIN_GAMES}경기 이후 이번 시즌 가능)"
+        per = "3년"
+        ctx = kbo_data.context(per)
     r = simulate.simulate(ctx["current_wins"], ctx["remaining"], ctx["strength"], n=N_SIM)
-    return render.render_all(r, per, ctx)
+    return render.render_all(r, per, ctx, note=note)
 
 
 if __name__ == "__main__":

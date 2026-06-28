@@ -2,11 +2,21 @@
 
 표시 규칙: ━로 감싼 블록을 그대로 노출. 0/100% 근접은 '확정/탈락' 상태문구(네비 R11).
 """
+import unicodedata
+
 from simulate import TEAMS
 
 _BAR = "━" * 18
-_PERIOD_LABEL = {"올해": "이번 시즌", "2년": "최근 2시즌", "3년": "최근 3시즌"}
-_PERIOD_SHORT = {"올해": "이번시즌", "2년": "2시즌", "3년": "3시즌"}
+
+
+def _dw(s):
+    """표시폭(한글·전각=2, 영문·숫자=1) — 고정폭 정렬용."""
+    return sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in s)
+
+
+def _pad(s, width):
+    """표시폭 기준 좌측정렬 패딩(오른쪽 공백)."""
+    return s + " " * max(0, width - _dw(s))
 
 
 def _winpct(s):
@@ -34,48 +44,42 @@ def _gb_from_5th(standings, team):
     return ((fifth["w"] - s["w"]) + (s["l"] - fifth["l"])) / 2, rank.index(team) + 1
 
 
-def render_team(team, results, ctx):
-    """특정 팀 우승확률(상세). results={period: sim결과}. 첫 period가 주(主)."""
+def render_team(team, results, ctx, note=None):
+    """특정 팀 우승확률(상세). results={period: sim결과}. 첫 period가 주(主).
+    note: 표본부족 자동대체 등 블록 안에 넣을 안내 한 줄(있으면 헤더 밑에)."""
     st = ctx["standings"][team]
     main_p = list(results.keys())[0]
     r0 = results[main_p]
     po, champ = r0["po"][team], r0["champ"][team]
-    rk = r0["rank"][team]
-    gb, pos = _gb_from_5th(ctx["standings"], team)
-    games_left = sum(1 for g in ctx.get("remaining", []) if team in (g["h"], g["a"]))
+    _, pos = _gb_from_5th(ctx["standings"], team)   # pos = 현재 순위
     rec = f"{st['w']}승 {st['l']}패" + (f" {st['t']}무" if st['t'] else "")
 
-    # ★압축 유지(DMM F25: 긴 블록은 드롭). 핵심만 ~12줄.★
+    # 가을야구 거의 확정/탈락이면 숫자 대신 상태문구(네비 R11)
     state = _po_state(po)
     po_str = state if state else f"{po*100:.0f}%"
-    rng = f"{rk['mode']}위" if rk["lo"] == rk["hi"] else f"{rk['mode']}위 ({rk['lo']}~{rk['hi']}위권)"
-    top3 = sorted(TEAMS, key=lambda t: r0["champ"][t], reverse=True)[:3]
 
-    lines = [_BAR, f"⚾ {team} — 우승확률 ({_PERIOD_LABEL.get(main_p, main_p)})"]
-    lines.append(f"📍 현재성적 {pos}위 · {rec}")
-    if len(results) > 1:   # 기간 비교
-        lines.append("🏆 우승  " + " · ".join(
-            f"{r['champ'][team]*100:.1f}%({_PERIOD_SHORT.get(per,per)})" for per, r in results.items()))
-    else:
-        lines.append(f"🏆 우승      {champ*100:.1f}%")
-    lines.append(f"📊 가을야구   {po_str}")
-    lines.append(f"📈 예상순위   {rng}")
-    lines.append('💬 결과가 안 보이면 "다시 보여줘"라고 해줘')
+    lines = [_BAR, f"⚾ {ctx['year']} KBO {team} 시뮬레이션"]
+    if note:
+        lines.append(note)
+    lines.append(f"📍 최종성적  {pos}위 {rec}")
+    lines.append(f"🏆 우승확률      {champ*100:.1f}%")
+    lines.append(f"📊 가을야구확률  {po_str}")
     lines.append(_BAR)
     return "\n".join(lines)
 
 
-def render_all(result, period, ctx):
+def render_all(result, period, ctx, note=None):
     """전체 팀 우승확률 + 가을야구확률 순위표 (둘 다 항상 표시)."""
     rank = sorted(TEAMS, key=lambda t: result["champ"][t], reverse=True)
-    lines = [_BAR, f"🏆 {ctx['year']} 우승·가을야구 ({_PERIOD_LABEL.get(period, period)})",
-             "  팀    우승 / 가을"]
+    lines = [_BAR, f"🏆 {ctx['year']} KBO 시뮬레이션"]
+    if note:
+        lines.append(note)
+    lines.append(" #  팀    우승 / 가을야구")
     for i, t in enumerate(rank, 1):
         c = result["champ"][t] * 100
         po = result["po"][t] * 100
-        c_str = f"{c:4.1f}%" if c >= 0.05 else " ~0%"
-        po_str = f"{po:3.0f}%" if 0.5 <= po <= 99.5 else ("100%" if po > 99.5 else "~0%")
-        lines.append(f"{i:2} {t:<4}{c_str} / {po_str}")
-    lines.append('💬 결과가 안 보이면 "다시 보여줘"라고 해줘')
+        c_str = (f"{c:.1f}%" if c >= 0.05 else "~0%").rjust(5)
+        po_str = (f"{po:.0f}%" if 0.5 <= po <= 99.5 else ("100%" if po > 99.5 else "~0%")).rjust(4)
+        lines.append(f"{i:2}  {_pad(t, 4)}  {c_str} / {po_str}")
     lines.append(_BAR)
     return "\n".join(lines)
