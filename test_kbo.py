@@ -65,7 +65,7 @@ def test_render_frame():
     txt = R.render_team("LG", {"올해": r}, ctx)
     assert txt.startswith("━") and txt.endswith("━") and "우승" in txt
     txt2 = R.render_all(r, "올해", ctx)
-    assert txt2.startswith("━") and "우승확률" in txt2
+    assert txt2.startswith("━") and "우승" in txt2
 
 
 if __name__ == "__main__":

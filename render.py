@@ -44,41 +44,26 @@ def render_team(team, results, ctx):
     games_left = sum(1 for g in ctx.get("remaining", []) if team in (g["h"], g["a"]))
     rec = f"{st['w']}승 {st['l']}패" + (f" {st['t']}무" if st['t'] else "")
 
-    lines = [_BAR, f"⚾ {team} 우승확률 — {_PERIOD_LABEL.get(main_p, main_p)} 기준"]
-    lines.append(f"📍 현재 {pos}위 · {rec} · 남은 {games_left}경기")
-    lines.append("")
-    # 우승% (기간 1개/비교)
-    if len(results) > 1:
-        lines.append("🏆 우승 확률")
-        for per, r in results.items():
-            lines.append(f"   {r['champ'][team]*100:>4.1f}%  ({_PERIOD_LABEL.get(per, per)})")
-    else:
-        lines.append(f"🏆 우승 확률      {champ*100:.1f}%")
-    # 가을야구 (상태 or %)
+    # ★압축 유지(DMM F25: 긴 블록은 드롭). 핵심만 ~12줄.★
     state = _po_state(po)
-    lines.append(f"📊 가을야구 진출   {state if state else f'{po*100:.0f}%'}")
-    # 예상 최종순위
+    po_str = state if state else f"{po*100:.0f}%"
     rng = f"{rk['mode']}위" if rk["lo"] == rk["hi"] else f"{rk['mode']}위 ({rk['lo']}~{rk['hi']}위권)"
-    lines.append(f"📈 예상 최종순위   {rng}")
-    lines.append("")
-    # 우승까지 경로 + 막차 경쟁
-    lines.append("🪜 우승까지 가는 길")
-    lines.append(f"  ① 5위 안 들기(가을야구) … {po*100:.0f}%")
-    lines.append(f"  ② 거기서 한국시리즈까지 … {champ*100:.1f}%")
-    if gb > 0:
-        lines.append(f"  (가을야구 막차까지 {gb:.1f}경기차)")
-    # 우승 1순위 top3
     top3 = sorted(TEAMS, key=lambda t: r0["champ"][t], reverse=True)[:3]
+    gb_str = f" · 막차 {gb:.0f}경기차" if gb > 0 else ""
+
+    lines = [_BAR, f"⚾ {team} — 우승확률 ({_PERIOD_LABEL.get(main_p, main_p)})"]
+    lines.append(f"📍 {pos}위 · {rec} · 남은 {games_left}경기")
+    if len(results) > 1:   # 기간 비교
+        lines.append("🏆 우승  " + " · ".join(
+            f"{r['champ'][team]*100:.1f}%({_PERIOD_LABEL.get(per,per).split()[0]})" for per, r in results.items()))
+    else:
+        lines.append(f"🏆 우승      {champ*100:.1f}%")
+    lines.append(f"📊 가을야구   {po_str}{gb_str}")
+    lines.append(f"📈 예상순위   {rng}")
+    lines.append("🥇 1순위  " + " · ".join(f"{t} {r0['champ'][t]*100:.0f}%" for t in top3))
     lines.append("")
-    lines.append("🥇 올해 우승 1순위")
-    lines.append("  " + " · ".join(f"{t} {r0['champ'][t]*100:.0f}%" for t in top3))
-    # 다음 선택지 (블록 안 — 친근하게)
-    lines.append("")
-    lines.append("📌 이어서 이렇게 물어봐")
-    lines.append('  · "최근 3년으로" — 과거까지 반영해 비교')
-    lines.append('  · "전체 순위" — 10팀 우승확률 한눈에')
-    lines.append("  · 다른 팀 이름 — 그 팀도 계산")
-    lines.append("💬 혹시 표가 안 보이면 '다시 보여줘'!")
+    lines.append('📌 "전체 순위" · "올해로/최근3년으로" · 다른 팀')
+    lines.append("💬 안 보이면 \"다시 보여줘\"")
     lines.append(_BAR)
     return "\n".join(lines)
 
@@ -86,19 +71,14 @@ def render_team(team, results, ctx):
 def render_all(result, period, ctx):
     """전체 팀 우승확률 + 가을야구확률 순위표 (둘 다 항상 표시)."""
     rank = sorted(TEAMS, key=lambda t: result["champ"][t], reverse=True)
-    lines = [_BAR, f"🏆 {ctx['year']} 우승확률 · 가을야구",
-             f"   ({_PERIOD_LABEL.get(period, period)} 기준)", "",
-             "  팀      우승   가을야구"]
+    lines = [_BAR, f"🏆 {ctx['year']} 우승·가을야구 ({_PERIOD_LABEL.get(period, period)})",
+             "  팀    우승 / 가을"]
     for i, t in enumerate(rank, 1):
         c = result["champ"][t] * 100
         po = result["po"][t] * 100
-        c_str = f"{c:4.1f}%" if c >= 0.05 else "  ~0%"
-        po_str = f"{po:3.0f}%" if 0.5 <= po <= 99.5 else ("100%" if po > 99.5 else " ~0%")
-        lines.append(f"{i:2} {t:<4} {c_str}  {po_str}")
-    lines.append("")
-    lines.append("📌 이어서 이렇게")
-    lines.append('  · 팀 이름(예 "한화") — 그 팀 상세')
-    lines.append('  · "최근 3년으로" — 과거까지 반영')
-    lines.append("💬 혹시 표가 안 보이면 '다시 보여줘'!")
+        c_str = f"{c:4.1f}%" if c >= 0.05 else " ~0%"
+        po_str = f"{po:3.0f}%" if 0.5 <= po <= 99.5 else ("100%" if po > 99.5 else "~0%")
+        lines.append(f"{i:2} {t:<4}{c_str} / {po_str}")
+    lines.append('💬 팀이름=상세 · "올해/최근3년" · 안보이면 "다시"')
     lines.append(_BAR)
     return "\n".join(lines)
