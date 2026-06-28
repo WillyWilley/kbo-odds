@@ -55,6 +55,9 @@ def render_team(team, results, ctx):
     if top != team:
         lines.append("")
         lines.append(f"🥇 현재 1순위: {top} ({r0['champ'][top]*100:.0f}%)")
+    # 다음 선택지를 블록 '안'에 (F22: 밖에 두면 표를 대체함)
+    lines.append("")
+    lines.append("📌 '최근 3년으로' · '전체 순위' · 다른 팀")
     lines.append(_BAR)
     return "\n".join(lines)
 
@@ -75,5 +78,6 @@ def render_all(result, period, ctx):
         lines.append(f"{i:2}. {t:<4} {c_str}{tag}")
     lines.append("")
     lines.append("🔒확정임박 ❌사실상탈락 · MC 2만회")
+    lines.append("📌 '한화'처럼 팀 말하면 자세히 · '최근 3년'")
     lines.append(_BAR)
     return "\n".join(lines)
