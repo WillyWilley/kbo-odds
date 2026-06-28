@@ -78,6 +78,7 @@ def simulate(current_wins, remaining, p, n=20000, seed=42):
     rng = random.Random(seed)
     champ = {t: 0 for t in TEAMS}
     po = {t: 0 for t in TEAMS}
+    wsum = {t: 0 for t in TEAMS}              # 예상 최종 승수 누적(평균용)
     pos_cnt = {t: [0] * 10 for t in TEAMS}   # 최종 순위(1~10위) 분포
     for _ in range(n):
         w = dict(current_wins)
@@ -87,6 +88,8 @@ def simulate(current_wins, remaining, p, n=20000, seed=42):
                 w[g["h"]] += 1
             else:
                 w[g["a"]] += 1
+        for t in TEAMS:
+            wsum[t] += w[t]
         # 순위(승수 → 동률시 실력)
         rank = sorted(TEAMS, key=lambda t: (w[t], p[t]), reverse=True)
         for i, t in enumerate(rank):
@@ -120,6 +123,7 @@ def simulate(current_wins, remaining, p, n=20000, seed=42):
 
     return {"champ": {t: champ[t] / n for t in TEAMS},
             "po": {t: po[t] / n for t in TEAMS},
+            "exp_wins": {t: wsum[t] / n for t in TEAMS},   # 예상 최종 승수
             "rank": {t: _rank_stats(t) for t in TEAMS}}
 
 

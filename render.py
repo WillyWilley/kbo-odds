@@ -52,8 +52,14 @@ def render_team(team, results, ctx, note=None):
     main_p = list(results.keys())[0]
     r0 = results[main_p]
     po, champ = r0["po"][team], r0["champ"][team]
-    _, pos = _gb_from_5th(ctx["standings"], team)   # pos = 현재 순위
-    rec = f"{st['w']}승 {st['l']}패" + (f" {st['t']}무" if st['t'] else "")
+    pos = r0["rank"][team]["mode"]                 # 예상 최종 순위
+    # 예상 최종 성적: 시뮬 평균 승수 + (현재 무승부 유지) → 나머지는 패
+    games_left = sum(1 for g in ctx.get("remaining", []) if team in (g["h"], g["a"]))
+    total_g = st["w"] + st["l"] + st["t"] + games_left
+    w_fin = round(r0["exp_wins"][team])
+    t_fin = st["t"]
+    l_fin = total_g - w_fin - t_fin
+    rec = f"{w_fin}승 {l_fin}패" + (f" {t_fin}무" if t_fin else "")
 
     # 가을야구 거의 확정/탈락이면 숫자 대신 상태문구(네비 R11)
     state = _po_state(po)
@@ -62,7 +68,7 @@ def render_team(team, results, ctx, note=None):
     lines = [_BAR, f"⚾ {ctx['year']} KBO {team} 시뮬레이션"]
     if note:
         lines.append(note)
-    lines.append(f"📍 현재성적  {pos}위 {rec}")
+    lines.append(f"📍 최종성적  {pos}위 {rec}")
     lines.append(f"🏆 우승확률      {champ*100:.1f}%")
     lines.append(f"📊 가을야구확률  {po_str}")
     lines.append(comments.team_line(champ, po))
