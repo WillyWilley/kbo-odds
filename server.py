@@ -90,4 +90,8 @@ def championship_odds(period: str = "올해") -> str:
 
 
 if __name__ == "__main__":
+    try:
+        kbo_data.current_season()   # 워밍업: 재시작 직후 첫 호출 타임아웃 방지
+    except Exception:
+        pass
     mcp.run(transport="streamable-http")

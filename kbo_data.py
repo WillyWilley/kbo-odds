@@ -4,6 +4,7 @@
 런타임: 과거는 data/seasons.json, 올해만 TTL 캐시로 가볍게.
 """
 import json
+import threading
 import time
 import urllib.request
 import urllib.parse
@@ -37,6 +38,7 @@ _ALIAS = {
     "한화이글스": "한화", "이글스": "한화",
 }
 _cache = {"t": 0, "data": None}
+_refresh_lock = threading.Lock()   # 백그라운드 갱신 중복 방지
 
 
 def normalize_team(name):
@@ -94,11 +96,7 @@ def fetch_season(year, start="03-15", end="10-31"):
     return [g for g in games if g["d"][5:7] in REG_MONTHS]
 
 
-def current_season(year=None):
-    if year is None:
-        year = datetime.now().year
-    if _cache["data"] and time.time() - _cache["t"] < TTL:
-        return _cache["data"]
+def _fetch_and_store(year):
     games = fetch_season(year)
     played = [g for g in games if g["fin"]]
     remaining = [{"h": g["h"], "a": g["a"]} for g in games if not g["fin"]]
@@ -106,6 +104,31 @@ def current_season(year=None):
     if played:                       # 빈 응답이면 캐시하지 않음(다음 호출 재시도)
         _cache.update(t=time.time(), data=data)
     return data
+
+
+def _refresh_bg(year):
+    """TTL 만료 갱신을 백그라운드로 — 요청은 stale 데이터로 즉시 응답(타임아웃 방지)."""
+    if not _refresh_lock.acquire(blocking=False):
+        return                       # 이미 갱신 중
+    def run():
+        try:
+            _fetch_and_store(year)
+        except Exception:
+            pass                     # 실패 시 stale 유지, 다음 요청이 재시도
+        finally:
+            _refresh_lock.release()
+    threading.Thread(target=run, daemon=True).start()
+
+
+def current_season(year=None):
+    if year is None:
+        year = datetime.now().year
+    d = _cache["data"]
+    if d and d["year"] == year:
+        if time.time() - _cache["t"] >= TTL:
+            _refresh_bg(year)
+        return d
+    return _fetch_and_store(year)    # 콜드 스타트(서버 기동 시 워밍업으로 선채움)
 
 
 def load_past():
